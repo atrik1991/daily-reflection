@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>今日の振り返り</title>
+<meta name="theme-color" content="#1c2033">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="今日の振り返り">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1c2033;
+    --bg-2: #171a29;
+    --surface: #262c42;
+    --surface-2: #2f3650;
+    --border: #3a4160;
+    --text: #eee9e0;
+    --text-dim: #9aa1bd;
+    --text-faint: #6b7291;
+    --accent: #e8a857;
+    --accent-soft: rgba(232,168,87,0.14);
+    --accent-2: #7fb08a;
+    --accent-2-soft: rgba(127,176,138,0.14);
+    --danger: #c9668a;
+    --radius: 14px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: radial-gradient(1200px 600px at 50% -10%, #232847 0%, var(--bg) 55%, var(--bg-2) 100%);
+    color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 560px; margin: 0 auto; padding: 32px 20px 80px; }
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    color: var(--text-faint); text-transform: uppercase; margin-bottom: 6px;
+  }
+  h1{ font-family: 'Shippori Mincho', serif; font-weight: 700; font-size: 26px; margin: 0 0 2px; letter-spacing: 0.02em; }
+  .date-line{ color: var(--text-dim); font-size: 14px; margin-bottom: 6px; }
+  .conn-status{ font-size: 11px; color: var(--text-faint); margin-bottom: 18px; font-family: 'JetBrains Mono', monospace; }
+  .conn-status.err{ color: var(--danger); }
+
+  .view-tabs{
+    display:flex; gap: 6px; background: rgba(0,0,0,0.18);
+    border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 22px;
+  }
+  .tab-btn{
+    flex: 1; padding: 9px 10px; border-radius: 9px; border: none; background: transparent;
+    color: var(--text-faint); font-family: 'Zen Kaku Gothic New', sans-serif; font-weight: 700;
+    font-size: 13px; cursor: pointer; transition: all 0.18s ease;
+  }
+  .tab-btn.active{ background: var(--accent); color: #211a0f; }
+
+  .view{ opacity: 0; transform: translateY(8px); transition: opacity .28s ease, transform .28s ease; }
+  .view.shown{ opacity: 1; transform: translateY(0); }
+  .view.hidden{ display: none; }
+
+  .card{
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 18px 16px; margin-bottom: 12px;
+  }
+  .q-num{ font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .q-title{ font-size: 15.5px; line-height: 1.6; margin: 0 0 4px; font-weight: 500; }
+  .q-caption{ font-size: 12px; color: var(--text-faint); margin-bottom: 14px; line-height: 1.5; }
+  .scale{ display: flex; align-items: center; gap: 8px; }
+  .scale-btn{
+    flex: 1; aspect-ratio: 1; max-width: 52px; border-radius: 50%;
+    border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+    color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 15px;
+    cursor: pointer; transition: all 0.15s ease; display:flex; align-items:center; justify-content:center;
+  }
+  .scale-btn:hover{ border-color: var(--accent); color: var(--text); }
+  .scale-btn.selected{ background: var(--accent); border-color: var(--accent); color: #1c2033; font-weight: 700; transform: scale(1.06); }
+  .scale-labels{ display:flex; justify-content: space-between; font-size: 10.5px; color: var(--text-faint); margin-top: 8px; padding: 0 2px; }
+
+  .note-card textarea{
+    width: 100%; min-height: 84px; resize: vertical;
+    background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 14px; padding: 12px; line-height: 1.6;
+  }
+  .note-card textarea::placeholder{ color: var(--text-faint); }
+  .note-card textarea:focus, .scale-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .save-row{ margin: 20px 0 6px; }
+  .save-btn{
+    width: 100%; padding: 15px; border-radius: 12px; border: none;
+    background: var(--accent); color: #211a0f; font-family: 'Shippori Mincho', serif;
+    font-weight: 700; font-size: 16px; letter-spacing: 0.04em; cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  .save-btn:hover{ filter: brightness(1.08); }
+  .save-btn:active{ transform: scale(0.99); }
+  .save-btn:disabled{ opacity: 0.5; cursor: default; }
+  .save-status{ text-align: center; font-size: 12.5px; color: var(--accent-2); margin-top: 10px; min-height: 16px; }
+  .save-status.error{ color: var(--danger); }
+
+  .result-head{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 18px; }
+  .result-head .msg{ font-family: 'Shippori Mincho', serif; font-size: 15px; color: var(--accent-2); }
+  .edit-link{
+    background: none; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 12px; padding: 7px 12px; border-radius: 20px; cursor: pointer;
+  }
+  .edit-link:hover{ border-color: var(--accent); color: var(--text); }
+
+  .section-title{
+    font-family: 'Shippori Mincho', serif; font-size: 16px; color: var(--text-dim);
+    margin: 8px 0 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after{ content:''; flex:1; height: 1px; background: var(--border); }
+
+  .chart-card{ padding: 18px 16px 14px; }
+  .chart-head{ display:flex; align-items:baseline; justify-content: space-between; margin-bottom: 4px; }
+  .chart-title{ font-family: 'Shippori Mincho', serif; font-size: 14.5px; color: var(--text); }
+  .chart-latest{ font-family: 'JetBrains Mono', monospace; }
+  .chart-latest b{ color: var(--accent); font-size: 22px; font-weight: 500; }
+  .chart-latest span{ color: var(--text-faint); font-size: 12px; }
+  .chart-sub{ font-size: 11.5px; color: var(--text-faint); margin-bottom: 8px; }
+
+  details.dropdown{ margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; }
+  details.dropdown summary{
+    cursor: pointer; list-style: none; font-size: 13px; color: var(--text-dim);
+    display:flex; align-items:center; gap: 6px; user-select: none;
+  }
+  details.dropdown summary::-webkit-details-marker{ display:none; }
+  details.dropdown summary::before{ content: '▸'; color: var(--accent); transition: transform 0.15s ease; font-size: 11px; }
+  details.dropdown[open] summary::before{ transform: rotate(90deg); }
+  .item-select{
+    width: 100%; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+    background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif; font-size: 13.5px;
+  }
+  .item-chart-wrap{ margin-top: 12px; }
+
+  .hist-item{
+    border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+    margin-bottom: 8px; background: rgba(255,255,255,0.015);
+  }
+  .hist-top{ display:flex; align-items:center; justify-content: space-between; cursor: pointer; }
+  .hist-date{ font-size: 13px; color: var(--text); }
+  .hist-right{ display:flex; align-items:center; gap: 10px; }
+  .hist-avg{ font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 7px; }
+  .hist-del{ background: none; border: none; color: var(--text-faint); font-size: 15px; cursor: pointer; line-height: 1; padding: 2px 4px; }
+  .hist-del:hover{ color: var(--danger); }
+  .hist-detail{ display:none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 12.5px; color: var(--text-dim); }
+  .hist-detail.open{ display:block; }
+  .hist-detail .row{ display:flex; justify-content: space-between; margin-bottom: 4px; gap: 10px; }
+  .hist-detail .row span:first-child{ color: var(--text-faint); }
+  .hist-note-toggle{ margin-top: 10px; font-size: 12px; color: var(--accent); cursor: pointer; user-select: none; }
+  .hist-note-body{ display:none; margin-top: 8px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+  .hist-note-body.open{ display:block; }
+  .empty-note{ color: var(--text-faint); font-size: 13px; text-align: center; padding: 18px 0; }
+  .loading{ text-align:center; color: var(--text-faint); font-size: 13px; padding: 30px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">DAILY REFLECTION</div>
+  <h1>今日の振り返り</h1>
+  <div class="date-line" id="dateLine">—</div>
+  <div class="conn-status" id="connStatus">Supabaseに接続中…</div>
+
+  <div class="view-tabs">
+    <button class="tab-btn" data-view="input">きょうを記録する</button>
+    <button class="tab-btn" data-view="result">振り返りを見る</button>
+  </div>
+
+  <section class="view" id="inputView">
+    <div class="section-title">問い</div>
+    <div id="questions"></div>
+
+    <div class="card note-card">
+      <div class="q-num">FREE NOTE</div>
+      <div class="q-title">自由記述</div>
+      <div class="q-caption">今日の振り返りを、明日の行動にどう活かすか</div>
+      <textarea id="noteInput" placeholder="例）今日の振り返りをふまえて、明日は◯◯をもっと意識して行動してみる。"></textarea>
+    </div>
+
+    <div class="save-row">
+      <button class="save-btn" id="saveBtn">記録する</button>
+      <div class="save-status" id="saveStatus"></div>
+    </div>
+  </section>
+
+  <section class="view hidden" id="resultView">
+    <div class="result-head">
+      <span class="msg" id="resultMsg">きょうの記録</span>
+      <button class="edit-link" id="editLink">記録を編集する</button>
+    </div>
+
+    <div class="section-title">振り返りグラフ</div>
+    <div class="card chart-card">
+      <div class="chart-head">
+        <div class="chart-title">総合スコアの推移</div>
+        <div class="chart-latest" id="overallLatest"><span>—</span></div>
+      </div>
+      <div class="chart-sub">Selfish かつ Goal を意識した行動ができたか（総合設問）</div>
+      <div id="overallChart"><div class="empty-note">まだ記録がありません</div></div>
+
+      <details class="dropdown">
+        <summary>項目別グラフを見る</summary>
+        <select class="item-select" id="itemSelect"></select>
+        <div class="item-chart-wrap" id="itemChart"></div>
+      </details>
+    </div>
+
+    <div class="section-title">これまでの記録</div>
+    <div id="history"><div class="loading">読み込み中…</div></div>
+  </section>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://eabpkpfshikhhpowljan.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_928E1pGwMAlNaom_xWGQPA_WO5yBpeU';
+const REST = `${SUPABASE_URL}/rest/v1/daily_reflections`;
+const SB_HEADERS = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+
+const QUESTIONS = [
+  {
+    id: 'own_will', short: '自分の望みの優先',
+    title: '今日、他人の期待よりも自分の本当の望みを優先して行動を選べた',
+    caption: '「信じられないくらいセルフィッシュになれ」（自分の望みを自覚し、優先する）'
+  },
+  {
+    id: 'present', short: '今への集中',
+    title: '過去の後悔や将来の不安にとらわれず、目の前のことに集中できた',
+    caption: '「未来というコンセプトを捨てる」（今を生きる）'
+  },
+  {
+    id: 'strengths', short: '強みの発揮',
+    title: '自分の強みや才能を遠慮せず、堂々と発揮できた',
+    caption: '「自分の才能を堂々と売りだす」「圧倒的な魅力を自分に感じる」'
+  },
+  {
+    id: 'truth', short: '本音を伝える',
+    title: '誤魔化さず、必要な相手に本音や事実を伝えられた',
+    caption: '「真実を認識し、語る」'
+  },
+  {
+    id: 'balance', short: '関係のバランス',
+    title: '人に対して、相手へのGOALと短期的な承認や欲求をバランスよく鑑みて、接することができた（悪い自分本位が出ていないか）',
+    caption: '短期的な承認欲求に流されず、相手にとっての価値を意識できたか（自己中心とは違う）'
+  },
+  {
+    id: 'meals', short: '食事',
+    title: '健康的で満足のいく食事が取れたと自負できる',
+    caption: '心身のコンディションを整える'
+  },
+  {
+    id: 'exercise', short: '運動',
+    title: '無理のない程度に運動ができた',
+    caption: '心身のコンディションを整える'
+  },
+  {
+    id: 'overall', short: '総合',
+    title: '全体を通してSelfishかつGoalを意識した行動ができた',
+    caption: '総合評価'
+  },
+];
+
+const SCALE_LABEL_LEFT = '全く当てはまらない';
+const SCALE_LABEL_RIGHT = '非常に当てはまる';
+
+let allEntries = []; // [{date, scores:{}, note}]
+let scores = {};
+let todayStr = '';
+let currentView = 'input';
+
+function fmtDate(d){
+  const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+  const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  return { iso: `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`, label: `${y}年${m}月${day}日（${wd}）` };
+}
+function shortDate(iso){
+  const [y,m,d] = iso.split('-');
+  return `${m}/${d}`;
+}
+
+/* ---------- view switching ---------- */
+function showView(view){
+  currentView = view;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  const input = document.getElementById('inputView');
+  const result = document.getElementById('resultView');
+  if (view === 'result'){
+    input.classList.add('hidden');
+    input.classList.remove('shown');
+    result.classList.remove('hidden');
+    requestAnimationFrame(() => result.classList.add('shown'));
+    renderOverallChart();
+    renderItemChart();
+    renderHistory();
+  } else {
+    result.classList.add('hidden');
+    result.classList.remove('shown');
+    input.classList.remove('hidden');
+    requestAnimationFrame(() => input.classList.add('shown'));
+  }
+}
+
+function renderQuestions(){
+  const el = document.getElementById('questions');
+  el.innerHTML = QUESTIONS.map((q, i) => `
+    <div class="card" data-qid="${q.id}">
+      <div class="q-num">Q${i+1}</div>
+      <div class="q-title">${q.title}</div>
+      <div class="q-caption">${q.caption}</div>
+      <div class="scale">
+        ${[1,2,3,4,5].map(v => `<button type="button" class="scale-btn" data-qid="${q.id}" data-val="${v}">${v}</button>`).join('')}
+      </div>
+      <div class="scale-labels"><span>${SCALE_LABEL_LEFT}</span><span>${SCALE_LABEL_RIGHT}</span></div>
+    </div>
+  `).join('');
+
+  el.querySelectorAll('.scale-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.dataset.qid, val = Number(btn.dataset.val);
+      scores[qid] = val;
+      el.querySelectorAll(`.scale-btn[data-qid="${qid}"]`).forEach(b => {
+        b.classList.toggle('selected', Number(b.dataset.val) === val);
+      });
+    });
+  });
+}
+
+function setSelectedButtons(){
+  QUESTIONS.forEach(q => {
+    if (scores[q.id] != null){
+      document.querySelectorAll(`.scale-btn[data-qid="${q.id}"]`).forEach(b => {
+        b.classList.toggle('selected', Number(b.dataset.val) === scores[q.id]);
+      });
+    }
+  });
+}
+
+/* ---------- Supabase REST helpers ---------- */
+async function sbFetchAll(){
+  const res = await fetch(`${REST}?select=entry_date,scores,note&order=entry_date.desc&limit=120`, { headers: SB_HEADERS });
+  if (!res.ok) throw new Error('fetch failed: ' + res.status);
+  const rows = await res.json();
+  return rows.map(r => ({ date: r.entry_date, scores: r.scores || {}, note: r.note || '' }));
+}
+async function sbUpsert(entry){
+  const res = await fetch(`${REST}?on_conflict=entry_date`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify([{ entry_date: entry.date, scores: entry.scores, note: entry.note, updated_at: new Date().toISOString() }])
+  });
+  if (!res.ok) throw new Error('save failed: ' + res.status);
+  return res.json();
+}
+async function sbDelete(dateStr){
+  const res = await fetch(`${REST}?entry_date=eq.${dateStr}`, { method: 'DELETE', headers: SB_HEADERS });
+  if (!res.ok) throw new Error('delete failed: ' + res.status);
+}
+
+/* ---------- charts ---------- */
+function buildLineChartSVG(points, color){
+  const valid = points.filter(p => p.value != null);
+  if (valid.length === 0) return '<div class="empty-note">まだ記録がありません</div>';
+  const w = 500, h = 150, padL = 26, padR = 12, padT = 12, padB = 22;
+  const innerW = w - padL - padR, innerH = h - padT - padB;
+  const n = valid.length;
+  const xStep = n > 1 ? innerW / (n - 1) : 0;
+  const yOf = v => padT + innerH - ((v - 1) / 4) * innerH;
+  const coords = valid.map((p, i) => ({ x: padL + i * xStep, y: yOf(p.value) }));
+  const pathD = coords.map((c, i) => (i === 0 ? 'M' : 'L') + c.x.toFixed(1) + ',' + c.y.toFixed(1)).join(' ');
+  const grid = [1, 3, 5].map(v => {
+    const y = yOf(v);
+    return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#3a4160" stroke-width="1" stroke-dasharray="2,4"/>
+            <text x="2" y="${y + 4}" font-size="10" fill="#6b7291" font-family="JetBrains Mono, monospace">${v}</text>`;
+  }).join('');
+  const dots = coords.map(c => `<circle cx="${c.x}" cy="${c.y}" r="3" fill="${color}"/>`).join('');
+  const firstLabel = shortDate(valid[0].date), lastLabel = shortDate(valid[n - 1].date);
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="xMidYMid meet">
+    ${grid}
+    <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+    <text x="${padL}" y="${h - 4}" font-size="10" fill="#6b7291" font-family="JetBrains Mono, monospace">${firstLabel}</text>
+    <text x="${w - padR}" y="${h - 4}" font-size="10" fill="#6b7291" font-family="JetBrains Mono, monospace" text-anchor="end">${lastLabel}</text>
+  </svg>`;
+}
+
+function renderOverallChart(){
+  const asc = [...allEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+  const points = asc.map(e => ({ date: e.date, value: e.scores['overall'] }));
+  document.getElementById('overallChart').innerHTML = buildLineChartSVG(points, '#e8a857');
+
+  const latestEntry = [...allEntries].sort((a, b) => b.date.localeCompare(a.date)).find(e => e.scores['overall'] != null);
+  const latestEl = document.getElementById('overallLatest');
+  if (latestEntry){
+    latestEl.innerHTML = `<b>${latestEntry.scores['overall']}</b><span> / 5 ・ ${shortDate(latestEntry.date)}</span>`;
+  } else {
+    latestEl.innerHTML = `<span>—</span>`;
+  }
+}
+
+function populateItemSelect(){
+  const sel = document.getElementById('itemSelect');
+  sel.innerHTML = QUESTIONS.filter(q => q.id !== 'overall').map(q => `<option value="${q.id}">${q.short}</option>`).join('');
+  sel.addEventListener('change', renderItemChart);
+}
+function renderItemChart(){
+  const sel = document.getElementById('itemSelect');
+  const qid = sel.value || QUESTIONS[0].id;
+  const asc = [...allEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+  const points = asc.map(e => ({ date: e.date, value: e.scores[qid] }));
+  document.getElementById('itemChart').innerHTML = buildLineChartSVG(points, '#7fb08a');
+}
+
+/* ---------- history list ---------- */
+function renderHistory(){
+  const el = document.getElementById('history');
+  const list = [...allEntries].sort((a, b) => b.date.localeCompare(a.date));
+  if (list.length === 0){
+    el.innerHTML = '<div class="empty-note">まだ記録がありません。今日の分から記録してみましょう。</div>';
+    return;
+  }
+  el.innerHTML = list.map((e, idx) => {
+    const total = e.scores['overall'];
+    const answered = Object.keys(e.scores).length;
+    const sum = Object.values(e.scores).reduce((a, b) => a + (b || 0), 0);
+    const avg = answered ? (sum / answered).toFixed(1) : '-';
+    const badge = total != null ? `総合 ${total}` : `平均 ${avg}`;
+    const d = new Date(e.date + 'T00:00:00');
+    const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+    const dateLabel = `${e.date}（${wd}）`;
+    const rows = QUESTIONS.map(q => `<div class="row"><span>${q.short}</span><span>${e.scores[q.id] ?? '-'}</span></div>`).join('');
+    return `
+      <div class="hist-item">
+        <div class="hist-top" data-idx="${idx}">
+          <span class="hist-date">${dateLabel}</span>
+          <span class="hist-right">
+            <span class="hist-avg">${badge}</span>
+            <button class="hist-del" data-date="${e.date}" title="削除">✕</button>
+          </span>
+        </div>
+        <div class="hist-detail" id="detail-${idx}">
+          ${rows}
+          ${e.note ? `<div class="hist-note-toggle" data-idx="${idx}">自由記述を見る ▾</div><div class="hist-note-body" id="note-${idx}">${escapeHtml(e.note)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.hist-top').forEach(top => {
+    top.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('hist-del')) return;
+      const idx = top.dataset.idx;
+      document.getElementById(`detail-${idx}`).classList.toggle('open');
+    });
+  });
+  el.querySelectorAll('.hist-note-toggle').forEach(t => {
+    t.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = t.dataset.idx;
+      document.getElementById(`note-${idx}`).classList.toggle('open');
+    });
+  });
+  el.querySelectorAll('.hist-del').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const date = btn.dataset.date;
+      if (!confirm(`${date} の記録を削除しますか？`)) return;
+      try{
+        await sbDelete(date);
+        allEntries = allEntries.filter(e => e.date !== date);
+        renderHistory();
+        renderOverallChart();
+        renderItemChart();
+        if (date === todayStr){
+          scores = {};
+          document.querySelectorAll('.scale-btn.selected').forEach(b => b.classList.remove('selected'));
+          document.getElementById('noteInput').value = '';
+          document.getElementById('saveBtn').textContent = '記録する';
+        }
+      } catch(e){
+        alert('削除に失敗しました。通信状況を確認してもう一度お試しください。');
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function loadTodayIfExists(){
+  const existing = allEntries.find(e => e.date === todayStr);
+  if (!existing) return;
+  scores = { ...existing.scores };
+  setSelectedButtons();
+  document.getElementById('noteInput').value = existing.note || '';
+  document.getElementById('saveBtn').textContent = '更新する';
+}
+
+async function handleSave(){
+  const statusEl = document.getElementById('saveStatus');
+  const saveBtn = document.getElementById('saveBtn');
+  const note = document.getElementById('noteInput').value.trim();
+  const entry = { date: todayStr, scores: { ...scores }, note };
+
+  saveBtn.disabled = true;
+  statusEl.classList.remove('error');
+  statusEl.textContent = '保存中…';
+
+  try{
+    await sbUpsert(entry);
+    allEntries = allEntries.filter(e => e.date !== todayStr);
+    allEntries.push(entry);
+    saveBtn.textContent = '更新する';
+    document.getElementById('resultMsg').textContent = '記録しました。おつかれさまでした。';
+    statusEl.textContent = '';
+    showView('result');
+  } catch(e){
+    statusEl.classList.add('error');
+    statusEl.textContent = '保存に失敗しました。通信状況を確認してもう一度お試しください。';
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function init(){
+  const d = new Date();
+  const { iso, label } = fmtDate(d);
+  todayStr = iso;
+  document.getElementById('dateLine').textContent = label;
+
+  renderQuestions();
+  populateItemSelect();
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => showView(b.dataset.view));
+  });
+  document.getElementById('editLink').addEventListener('click', () => showView('input'));
+  document.getElementById('saveBtn').addEventListener('click', handleSave);
+
+  const connEl = document.getElementById('connStatus');
+  try{
+    allEntries = await sbFetchAll();
+    connEl.style.display = 'none';
+  } catch(e){
+    connEl.textContent = 'Supabaseへの接続に失敗しました。通信環境をご確認ください。';
+    connEl.classList.add('err');
+    allEntries = [];
+  }
+
+  loadTodayIfExists();
+
+  const hasToday = allEntries.some(e => e.date === todayStr);
+  if (hasToday){
+    document.getElementById('resultMsg').textContent = 'きょうの記録';
+  }
+  showView(hasToday ? 'result' : 'input');
+}
+
+init();
+</script>
+</body>
+</html>
